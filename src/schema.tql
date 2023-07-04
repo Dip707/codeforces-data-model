@@ -5,26 +5,17 @@ coder sub entity,
     owns rating,
     owns max-rating,
     owns rank,
-    owns friends-number,
-    plays participated-in:coder,
-    plays solved-problem:solver,
-    plays similar-rated-coders:coder;
+    # plays similar-rated-coders:coder;
+    owns friends-number;
 
 coder-with-nationality sub coder,
     owns country,
     plays compatriotship:countryman;
 
-contest sub entity,
-    owns contest-number,
-    owns date,
-    plays belongs-to-contest:contest,
-    plays participated-in:contest;
-
 problem sub entity,
-    owns problem-number,
+    owns problem-number @key,
     owns problem-name,
-    plays belongs-to-contest:problem,
-    plays solved-problem:solved,
+    owns rating,
     plays possesses-tag:problem;
 
 topic sub entity,
@@ -32,25 +23,14 @@ topic sub entity,
     plays possesses-tag:topic;
 
 # relations
-belongs-to-contest sub relation,
-    relates problem,
-    relates contest;
-
-participated-in sub relation,
-    relates coder,
-    relates contest;
-
-solved-problem sub relation,
-    relates solver,
-    relates solved;
 
 compatriotship sub relation,
     relates countryman,
     relates countryman;
 
-similar-rated-coders sub relation,
-    relates coder,
-    relates coder;
+# similar-rated-coders sub relation,
+#     relates coder,
+#     relates coder;
 
 possesses-tag sub relation,
     relates problem,
@@ -90,17 +70,8 @@ max-rating sub attribute,
 rank sub attribute,
     value string;
 
-friends-number sub attribute,
-    value long;
-
 country sub attribute,
     value string;
-
-contest-number sub attribute,
-    value long;
-
-date sub attribute,
-    value datetime;
 
 problem-number sub attribute,
     value string;
