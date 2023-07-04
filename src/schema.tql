@@ -1,0 +1,108 @@
+define
+# entities
+coder sub entity,
+    owns handle @key,
+    owns rating,
+    owns max-rating,
+    owns rank,
+    owns friends-number,
+    plays participated-in:coder,
+    plays solved-problem:solver,
+    plays similar-rated-coders:coder;
+
+coder-with-nationality sub coder,
+    owns country,
+    plays compatriotship:countryman;
+
+contest sub entity,
+    owns contest-number,
+    owns date,
+    plays belongs-to-contest:contest,
+    plays participated-in:contest;
+
+problem sub entity,
+    owns problem-number,
+    plays belongs-to-contest:problem,
+    plays solved-problem:solved,
+    plays possesses-tag:problem;
+
+topic sub entity,
+    owns topic-name,
+    plays possesses-tag:topic;
+
+# relations
+belongs-to-contest sub relation,
+    relates problem,
+    relates contest;
+
+participated-in sub relation,
+    relates coder,
+    relates contest;
+
+solved-problem sub relation,
+    relates solver,
+    relates solved;
+
+compatriotship sub relation,
+    relates countryman,
+    relates countryman;
+
+similar-rated-coders sub relation,
+    relates coder,
+    relates coder;
+
+possesses-tag sub relation,
+    relates problem,
+    relates topic;
+
+# rules
+rule coders-from-the-same-country-are-compatriots:
+when {
+    $p isa coder-with-nationality, has country $x;
+    $q isa coder-with-nationality, has country $x;
+} then {
+    (countryman: $p, countryman: $q) isa compatriotship;
+};
+
+# rule coders-with-similar-rating:
+# when {
+#     $p isa coder, has rating $x, has handle $u;
+#     $q isa coder, has rating $y, has handle $v;
+#     ?val = abs($x - $y);
+#     ?val <= 100;
+#     not {$p is $q;};
+# } then {
+#     (coder: $p, coder: $q) isa similar-rated-coders;
+# };
+
+# attribute
+
+handle sub attribute,
+    value string;
+
+rating sub attribute,
+    value long;
+
+max-rating sub attribute,
+    value long;
+
+rank sub attribute,
+    value string;
+
+friends-number sub attribute,
+    value long;
+
+country sub attribute,
+    value string;
+
+contest-number sub attribute,
+    value long;
+
+date sub attribute,
+    value datetime;
+
+problem-number sub attribute,
+    value string;
+
+topic-name sub attribute,
+    value string;
