@@ -9,3 +9,5 @@ edition = "2021"
 typedb-client = { path = "/Users/yashb/Desktop/Vaticle/typedb_client-cargo-workspace/typedb-client" }
 futures = "0.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+anyhow = { version = "1.0", default-features = false }
+

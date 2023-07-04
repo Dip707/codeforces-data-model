@@ -41,13 +41,17 @@ with open('data.tql', 'w') as ff:
 
     for problem in problem_data['problems']:
         problem_number = str(problem['contestId']) + problem['index']
-        problem_name = problem['name']
+        problem_name = str(problem['name'])
+        if '"' in problem_name:
+            continue
+        if "'" in problem_name:
+            continue
         if 'rating' in problem:
             rating = problem['rating']
-            print(f'insert $p isa problem, has problem-number "{problem_number}", has problem-name "{problem_name}", has rating "{rating}";')
-            if 'tags' in problem:
-                for tag in problem['tags']:
-                    print(f'match $p isa problem, has problem-number "{problem_number}";')
-                    print(f'match $q isa topic, has topic-name "{tag}";')
-                    print(f'(problem: $p, topic: $q) isa possesses-tag;')
+            print(f'insert $p isa problem, has problem-number "{problem_number}", has problem-name "{problem_name}", has rating {rating};')
+            # if 'tags' in problem:
+            #     for tag in problem['tags']:
+            #         print(f'match $p isa problem, has problem-number "{problem_number}";')
+            #         print(f'match $q isa topic, has topic-name "{tag}";')
+            #         print(f'(problem: $p, topic: $q) isa possesses-tag;')
 

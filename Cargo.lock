@@ -653,6 +653,7 @@ dependencies = [
 name = "onboarding-project-cf"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "futures",
  "tokio",
  "typedb-client",
