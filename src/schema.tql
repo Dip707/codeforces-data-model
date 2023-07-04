@@ -22,6 +22,7 @@ contest sub entity,
 
 problem sub entity,
     owns problem-number,
+    owns problem-name,
     plays belongs-to-contest:problem,
     plays solved-problem:solved,
     plays possesses-tag:problem;
@@ -105,4 +106,7 @@ problem-number sub attribute,
     value string;
 
 topic-name sub attribute,
+    value string;
+
+problem-name sub attribute,
     value string;

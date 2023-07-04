@@ -1,9 +1,14 @@
 import json
 import sys
+import os
+
+path = '/Users/yashb/Desktop/Vaticle/onboarding-project-cf/src'
+
+os.chdir(path)
 
 with open('data.tql', 'w') as ff:
     sys.stdout = ff
-    f = open('data.json')
+    f = open('data.json', 'r')
     data = json.load(f)
     f.close()
 
@@ -20,3 +25,10 @@ with open('data.tql', 'w') as ff:
         else:
             print(f'insert $p isa coder, has handle "{handle}", has rating {rating}, has max-rating {max_rating}, has rank "{rank}", has friends-number {friends_number};')
 
+    tags = open('cftags.txt', 'r')
+    taglines = tags.readlines()
+
+    for line in taglines:
+        print(f'insert $p isa topic, has topic-name "{line[:-1]}";')
+
+    tags.close()

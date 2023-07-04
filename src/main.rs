@@ -1,3 +1,7 @@
+use std::fs::File;
+use std::io::{self, BufRead};
+use std::path::Path;
+
 use typedb_client::{
     concept::{Attribute, Concept, Value},
     error::ConnectionError,
@@ -18,11 +22,9 @@ fn new_core_connection() -> typedb_client::Result<Connection> {
 async fn mymain()->std::io::Result<()>{
     // load tql files
     let schema = fs::read_to_string("./src/schema.tql")?;
-    // let data=fs::read_to_string("./src/data.tql")?;
-    // let queries=fs::read_to_string("./src/queries.tql")?;
+    let data=fs::read_to_string("./src/data.tql")?;
 
     let con=new_core_connection().expect("Line: 74");
-    // query_options(con.clone()).await.unwrap();
     let databases = DatabaseManager::new(con);
     if databases.contains(TEST_DATABASE).await.unwrap()==false {
         databases.create(TEST_DATABASE).await;
@@ -35,11 +37,23 @@ async fn mymain()->std::io::Result<()>{
     let transaction = session.transaction(Write).await.unwrap();
     transaction.query().define(schema.as_str()).await.unwrap();
     transaction.commit().await.unwrap();
-    
+
+    if let Ok(lines) = read_lines("./src/queries.tql") {
+        // Consumes the iterator, returns an (Optional) String
+        for line in lines {
+            if let Ok(ip) = line {
+                let ch = ip.chars().next().unwrap();
+                if ch == 'm'{
+                    let answer_stream = transaction.query().match_(ip.as_str())?;
+                }
+            }
+        }
+    }
+
     // insert data
-    // let transaction = session.transaction(Write).await.unwrap();
-    // let _ = transaction.query().insert(data.as_str());
-    // transaction.commit().await.unwrap();
+    let transaction = session.transaction(Write).await.unwrap();
+    let _ = transaction.query().insert(data.as_str());
+    transaction.commit().await.unwrap();
 
     Ok(())
 }
@@ -49,4 +63,12 @@ async fn main(){
     // let r=mymain();
     // block_on(r);
     mymain().await;
+}
+
+// The output is wrapped in a Result to allow matching on errors
+// Returns an Iterator to the Reader of the lines of the file.
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }

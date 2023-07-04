@@ -18,5 +18,3 @@ match $cc isa coder, has handle $p, has rating >= 2400; get $p;
 
 # Get all coders with difference between max rating and rating is greater than 200
 match $cc isa coder, has rating $x, has handle $p, has max-rating $y; ?diff = $y - $x; ?diff >= 200; get $p;
-
-# Add problem and contest related queries
