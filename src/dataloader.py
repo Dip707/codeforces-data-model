@@ -40,6 +40,8 @@ with open('data.tql', 'w') as ff:
     problem_data = problems['result']
 
     for problem in problem_data['problems']:
+        if problem['contestId'] < 1730:
+            continue
         problem_number = str(problem['contestId']) + problem['index']
         problem_name = str(problem['name'])
         if '"' in problem_name:
@@ -49,9 +51,9 @@ with open('data.tql', 'w') as ff:
         if 'rating' in problem:
             rating = problem['rating']
             print(f'insert $p isa problem, has problem-number "{problem_number}", has problem-name "{problem_name}", has rating {rating};')
-            # if 'tags' in problem:
-            #     for tag in problem['tags']:
-            #         print(f'match $p isa problem, has problem-number "{problem_number}";')
-            #         print(f'match $q isa topic, has topic-name "{tag}";')
-            #         print(f'(problem: $p, topic: $q) isa possesses-tag;')
+            if 'tags' in problem:
+                for tag in problem['tags']:
+                    print(f'match $p isa problem, has problem-number "{problem_number}";')
+                    print(f'match $q isa topic, has topic-name "{tag}";')
+                    print(f'$t (problem: $p, topic: $q) isa possesses-tag;')
 
