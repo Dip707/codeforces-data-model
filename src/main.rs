@@ -1,8 +1,3 @@
-use std::fs::File;
-use std::io::{self, BufRead};
-use std::path::Path;
-// use anyhow::Result;
-
 use typedb_client::{
     concept::{Attribute, Concept, Value},
     error::ConnectionError,
@@ -11,65 +6,185 @@ use typedb_client::{
     TransactionType::{Read, Write},
     Credential, Database
 };
-use futures::executor::block_on;
+use futures::{executor::block_on, StreamExt};
 use  std::fs;
+use text_io::read;
 
-const TEST_DATABASE: &str = "project-cf";
+const TEST_DATABASE: &str = "codeforces-data-model";
  
 fn new_core_connection() -> typedb_client::Result<Connection> {
     Connection::new_plaintext("localhost:1729")
 }
 
-async fn mymain()->std::io::Result<()>{
-    // load tql files
+async fn load_data(connection: Connection)->std::io::Result<()>{
+    let data=fs::read_to_string("./src/data.tql")?;    
+    let databases = DatabaseManager::new(connection.clone());
+    if databases.contains(TEST_DATABASE).await.unwrap()==false {
+        databases.create(TEST_DATABASE).await;    // insert data
+        let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
+        let transaction = session.transaction(Write).await.unwrap();
+        let _ = transaction.query().insert(data.as_str());
+        transaction.commit().await.unwrap();
+        println!("\nData Loaded\n");
+    }else {
+        println!("\nData Already Loaded\n");
+    }
+    Ok(())
+}
+
+async fn load_schema(connection: Connection)->std::io::Result<()>{
     let schema = fs::read_to_string("./src/schema.tql")?;
-    let data=fs::read_to_string("./src/data.tql")?;
+    // query_options(con.clone()).await.unwrap();
+    let databases = DatabaseManager::new(connection.clone());
+    if databases.contains(TEST_DATABASE).await.unwrap()==false {
+        databases.create(TEST_DATABASE).await;
+        // define schema
+        let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Schema).await.unwrap();
+        let transaction = session.transaction(Write).await.unwrap();
+        transaction.query().define(schema.as_str()).await.unwrap();
+        transaction.commit().await.unwrap();
+        println!("\nSchema Loaded\n");
+    }else {
+        println!("\nSchema Already Defined\n");
+    }
+
+    Ok(())
+}
+
+async fn query1(connection: Connection)->std::io::Result<()>{    
+    let databases = DatabaseManager::new(connection.clone());
+    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
+    let transaction = session.transaction(Read).await.unwrap();
+    println!("Query chosen : Get names of all coders with rating >= x");
+    println!("Choose rating x");
+    let x: String=read!();
+    let mut query_part_1 ="match $cc isa coder, has handle $p, has rating >= ";
+    let mut query_part_2 = "; get $p;";
+    let mut full_query = "".to_owned();
+    full_query = full_query + query_part_1 + x.as_str() + query_part_2;
+
+    println!("{}", full_query);
+
+    let mut answer_stream = transaction.query().match_(&full_query.as_str()).unwrap();
+    while let Some(result) = answer_stream.next().await{
+        match result {
+            Ok(concept_map) => {
+                for (_, concept) in concept_map {
+                    if let Concept::Attribute(Attribute { value: Value::String(value), .. }) = concept {
+                        println!("{}",value);
+                    }
+                }
+            }
+            Err(err) => {
+                panic!("An error occurred fetching answers of a Match query: {err}")
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn query2(connection: Connection)->std::io::Result<()>{    
+    let databases = DatabaseManager::new(connection.clone());
+    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
+    let transaction = session.transaction(Read).await.unwrap();
+    println!("Query chosen : Get IDs of problems with a particular tag");
+    println!("Choose tag");
+    let x: String=read!();
+    let mut query_part_1 ="match $tt ($x, $y) isa possesses-tag; $x isa problem, has problem-number $a; $y isa topic, has topic-name \"";
+    let mut query_part_2 = "\"; get $a;";
+    let mut full_query = "".to_owned();
+    full_query = full_query + query_part_1 + x.as_str() + query_part_2;
+
+    println!("{}", full_query);
+
+    let mut answer_stream = transaction.query().match_(&full_query.as_str()).unwrap();
+    println!("ok ok");
+    while let Some(result) = answer_stream.next().await{
+        println!("hi");
+        match result {
+            Ok(concept_map) => {
+                for (_, concept) in concept_map {
+                    if let Concept::Attribute(Attribute { value: Value::String(value), .. }) = concept {
+                        println!("{}",value);
+                    }
+                }
+            }
+            Err(err) => {
+                panic!("An error occurred fetching answers of a Match query: {err}")
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn query3(connection: Connection)->std::io::Result<()>{    
+    let databases = DatabaseManager::new(connection.clone());
+    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
+    let transaction = session.transaction(Read).await.unwrap();
+    println!("Query chosen : Get problem-name of problems with a particular tag with rating >= x");
+    println!("Choose rating x");
+    let x: String=read!(); 
+    println!("Choose tag");
+    let tag: String=read!();
+    let mut query_part_1 ="match $p isa problem, has problem-name $m, has rating >= ";
+    let mut query_part_2 = "; $y isa topic, has topic-name \"";
+    let mut query_part_3 = "\"; $tt ($p, $y) isa possesses-tag; get $m;";
+    let mut full_query = "".to_owned();
+    full_query = full_query + query_part_1 + x.as_str() + query_part_2 + tag.as_str() + query_part_3;
+
+    println!("{}", full_query);
+
+    let mut answer_stream = transaction.query().match_(&full_query.as_str()).unwrap();
+    while let Some(result) = answer_stream.next().await{
+        match result {
+            Ok(concept_map) => {
+                for (_, concept) in concept_map {
+                    if let Concept::Attribute(Attribute { value: Value::String(value), .. }) = concept {
+                        println!("{}",value);
+                    }
+                }
+            }
+            Err(err) => {
+                panic!("An error occurred fetching answers of a Match query: {err}")
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn runIO(connection: Connection){
+    println!("Welcome to the codeforces data model project. Please choose what kind of query you would like to make from the following options");
+    println!("Please select your entry using the number of the query");
+    println!("Options");
+    println!("1) Get names of all coders with rating >= x");
+    println!("2) Get IDs of problems with a particular tag");
+    println!("3) Get problem-name of problems with a particular tag with rating >= x");
+    let qtype: i32=read!();
+    if qtype == 1{
+        query1(connection).await;
+    }else if qtype == 2{
+        query2(connection).await;
+    }else if qtype == 3{
+        query3(connection).await;
+    }else{
+        println!("Retry, invalid query option chosen");
+    }
+}
+
+async fn mymain()->std::io::Result<()>{
 
     let con=new_core_connection().expect("Line: 74");
-    let databases = DatabaseManager::new(con);
-    if databases.contains(TEST_DATABASE).await.unwrap()==false {
-        let _ = databases.create(TEST_DATABASE).await;
-        println!("Done");
-    }
-    println!("line:24");
-
-    // define schema
-    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Schema).await.unwrap();
-    // let transaction = session.transaction(Write).await.unwrap();
-    // transaction.query().define(schema.as_str()).await.unwrap();
-    // transaction.commit().await.unwrap();
-
-    // if let Ok(lines) = read_lines("./src/queries.tql") {
-    //     // Consumes the iterator, returns an (Optional) String
-    //     for line in lines {
-    //         if let Ok(ip) = line {
-    //             let ch = ip.chars().next().unwrap();
-    //             if ch == 'm'{
-    //                 let answer_stream = transaction.query().match_(ip.as_str())?;
-    //             }
-    //         }
-    //     }
-    // }
-
-    // insert data
-    let transaction = session.transaction(Write).await.unwrap();
-    let _ = transaction.query().insert(data.as_str());
-    transaction.commit().await.unwrap();
+    load_schema(con.clone()).await?;
+    load_data(con.clone()).await?;
+    runIO(con.clone()).await;
 
     Ok(())
 }
 
 #[tokio::main]
 async fn main(){
-    // let r=mymain();
-    // block_on(r);
     mymain().await;
 }
-
-// // The output is wrapped in a Result to allow matching on errors
-// // Returns an Iterator to the Reader of the lines of the file.
-// fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-// where P: AsRef<Path>, {
-//     let file = File::open(filename)?;
-//     Ok(io::BufReader::new(file).lines())
-// }
