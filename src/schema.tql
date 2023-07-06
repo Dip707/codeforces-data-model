@@ -81,3 +81,6 @@ topic-name sub attribute,
 
 problem-name sub attribute,
     value string;
+
+friends-number sub attribute,
+    value long;

@@ -12,6 +12,9 @@ with open('data.tql', 'w') as ff:
     data = json.load(f)
     f.close()
 
+    print('insert')
+
+    coder_cnt = 0
     for user in data['result']:
         # this user stuff is a dictionary
         handle = user['handle']
@@ -21,15 +24,20 @@ with open('data.tql', 'w') as ff:
         friends_number = user['friendOfCount']
         if 'country' in user:
             country = user['country']
-            print(f'insert $p isa coder-with-nationality, has handle "{handle}", has rating {rating}, has max-rating {max_rating}, has rank "{rank}", has friends-number {friends_number}, has country "{country}";')
+            print(f'$c{coder_cnt} isa coder-with-nationality, has handle "{handle}", has rating {rating}, has max-rating {max_rating}, has rank "{rank}", has friends-number {friends_number}, has country "{country}";')
         else:
-            print(f'insert $p isa coder, has handle "{handle}", has rating {rating}, has max-rating {max_rating}, has rank "{rank}", has friends-number {friends_number};')
+            print(f'$c{coder_cnt} isa coder, has handle "{handle}", has rating {rating}, has max-rating {max_rating}, has rank "{rank}", has friends-number {friends_number};')
+        coder_cnt += 1
 
     tags = open('cftags.txt', 'r')
     taglines = tags.readlines()
+    tag_cnt = 0
+    tag_dictionary = {}
 
     for line in taglines:
-        print(f'insert $p isa topic, has topic-name "{line[:-1]}";')
+        print(f'$m{tag_cnt} isa topic, has topic-name "{line[:-1]}";')
+        tag_dictionary[line[:-1]] = tag_cnt
+        tag_cnt += 1
 
     tags.close()
 
@@ -38,9 +46,10 @@ with open('data.tql', 'w') as ff:
     data.close()
 
     problem_data = problems['result']
+    problem_cnt = 0
 
     for problem in problem_data['problems']:
-        if problem['contestId'] < 1730:
+        if problem['contestId'] < 1710:
             continue
         problem_number = str(problem['contestId']) + problem['index']
         problem_name = str(problem['name'])
@@ -50,10 +59,16 @@ with open('data.tql', 'w') as ff:
             continue
         if 'rating' in problem:
             rating = problem['rating']
-            print(f'insert $p isa problem, has problem-number "{problem_number}", has problem-name "{problem_name}", has rating {rating};')
+            print(f'$p{problem_cnt} isa problem, has problem-number "{problem_number}", has problem-name "{problem_name}", has rating {rating};')
             if 'tags' in problem:
+                num_tag = 0
                 for tag in problem['tags']:
-                    print(f'match $p isa problem, has problem-number "{problem_number}";')
-                    print(f'match $q isa topic, has topic-name "{tag}";')
-                    print(f'$t (problem: $p, topic: $q) isa possesses-tag;')
+                    if num_tag > 5:
+                        continue
+                    if str(tag) not in tag_dictionary:
+                        continue
+                    current_tag = tag_dictionary[str(tag)]
+                    print(f'$t{problem_cnt * 7 + num_tag} (problem: $p{problem_cnt}, topic: $m{current_tag}) isa possesses-tag;')
+                    num_tag += 1
+            problem_cnt += 1
 
