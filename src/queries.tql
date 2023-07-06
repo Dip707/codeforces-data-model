@@ -13,8 +13,17 @@
 # Get all coders with rating greater than or equal 2400
 match $cc isa coder, has handle $p, has rating >= 2400; get $p;
 
+# Problem with a particular tag
+match
+$tt ($x, $y) isa possesses-tag; 
+$ttt ($x, $z) isa possesses-tag;
+$x isa problem, has problem-number $a;
+$y isa topic, has topic-name "dp";
+$z isa topic, has topic-name "2-sat";
+get $a;
+
 # Get all coders with same country as some coder
 #match $cc ("KDVinit", $y) isa compatriotship; get $y;
 
 # Get all coders with difference between max rating and rating is greater than 200
-match $cc isa coder, has rating $x, has handle $p, has max-rating $y; ?diff = $y - $x; ?diff >= 200; get $p;
+#match $cc isa coder, has rating $x, has handle $p, has max-rating $y; ?diff = $y - $x; ?diff >= 200; get $p;
