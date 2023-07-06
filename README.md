@@ -26,6 +26,6 @@ Currently this program supports 3 types of queries to choose from which are
 where paramters x and tag can be supplied by the user.
 
 ## How the commands were generated
-The json data for the problems and the coders and the text file for the problem tags obtained from the CF Api was converted into TypeQL with the help of the dataloader.py [file](src/dataloader.py).
+The json data for the problems and the coders and the text file for the problem tags obtained from the CF Api was converted into TypeQL with the help of the dataloader.py file [link here](src/dataloader.py).
 
 
