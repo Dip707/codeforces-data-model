@@ -8,7 +8,7 @@ use futures::{StreamExt};
 use  std::fs;
 use text_io::read;
 
-const TEST_DATABASE: &str = "codeforces-data-model";
+const TEST_DATABASE: &str = "codeforces-data-model-5";
  
 fn new_core_connection() -> typedb_client::Result<Connection> {
     Connection::new_plaintext("localhost:1729")
@@ -35,9 +35,9 @@ async fn load_schema(connection: Connection)->std::io::Result<()>{
         let transaction = session.transaction(Write).await.unwrap();
         transaction.query().define(schema.as_str()).await.unwrap();
         transaction.commit().await.unwrap();
-        session.force_close().unwrap();
-        load_data(connection.clone()).await?;
+        drop(session);
         println!("\nSchema Defined Successfully\n");
+        load_data(connection.clone()).await?;
     }else {
         println!("\nSchema Already Defined\n");
     }
