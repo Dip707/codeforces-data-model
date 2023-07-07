@@ -27,7 +27,6 @@ async fn load_data(connection: Connection)->std::io::Result<()>{
 
 async fn load_schema(connection: Connection)->std::io::Result<()>{
     let schema = fs::read_to_string("./src/schema.tql")?;
-    // query_options(con.clone()).await.unwrap();
     let databases = DatabaseManager::new(connection.clone());
     if databases.contains(TEST_DATABASE).await.unwrap()==false {
         let _ = databases.create(TEST_DATABASE).await;
@@ -167,16 +166,11 @@ async fn run_io(connection: Connection){
     }
 }
 
-async fn mymain()->std::io::Result<()>{
-
+#[tokio::main]
+async fn main()->std::io::Result<()>{
     let con=new_core_connection().expect("Line: 74");
     load_schema(con.clone()).await?;
     run_io(con.clone()).await;
 
     Ok(())
-}
-
-#[tokio::main]
-async fn main(){
-    let _ = mymain().await;
 }
