@@ -52,14 +52,11 @@ async fn query1(connection: Connection)->std::io::Result<()>{
     println!("Query chosen : Get names of all coders with rating >= x");
     println!("Choose rating x");
     let x: String=read!("{}\n");
-    let query_part_1 ="match $cc isa coder, has handle $p, has rating >= ";
-    let query_part_2 = "; get $p;";
-    let mut full_query = "".to_owned();
-    full_query = full_query + query_part_1 + x.as_str() + query_part_2;
+    let query = format!("match $cc isa coder, has handle $p, has rating >= {x}; get $p;");
 
-    println!("{}", full_query);
+    println!("{}", query);
 
-    let mut answer_stream = transaction.query().match_(&full_query.as_str()).unwrap();
+    let mut answer_stream = transaction.query().match_(&query.as_str()).unwrap();
     while let Some(result) = answer_stream.next().await{
         match result {
             Ok(concept_map) => {
@@ -84,15 +81,12 @@ async fn query2(connection: Connection)->std::io::Result<()>{
     let transaction = session.transaction(Read).await.unwrap();
     println!("Query chosen : Get IDs of problems with a particular tag");
     println!("Choose tag");
-    let x: String=read!("{}\n");
-    let query_part_1 ="match $tt ($x, $y) isa possesses-tag; $x isa problem, has problem-number $a; $y isa topic, has topic-name \"";
-    let query_part_2 = "\"; get $a;";
-    let mut full_query = "".to_owned();
-    full_query = full_query + query_part_1 + x.as_str() + query_part_2;
+    let tag: String=read!("{}\n");
+    let query = format!("match $tt ($x, $y) isa possesses-tag; $x isa problem, has problem-number $a; $y isa topic, has topic-name \"{tag}\"; get $a;");
 
-    println!("{}", full_query);
+    println!("{}", query);
 
-    let mut answer_stream = transaction.query().match_(&full_query.as_str()).unwrap();
+    let mut answer_stream = transaction.query().match_(&query.as_str()).unwrap();
     while let Some(result) = answer_stream.next().await{
         match result {
             Ok(concept_map) => {
@@ -120,15 +114,10 @@ async fn query3(connection: Connection)->std::io::Result<()>{
     let x: String=read!("{}\n");
     println!("Choose tag");
     let tag: String=read!();
-    let query_part_1 ="match $p isa problem, has problem-name $m, has rating >= ";
-    let query_part_2 = "; $y isa topic, has topic-name \"";
-    let query_part_3 = "\"; $tt ($p, $y) isa possesses-tag; get $m;";
-    let mut full_query = "".to_owned();
-    full_query = full_query + query_part_1 + x.as_str() + query_part_2 + tag.as_str() + query_part_3;
+    let query = format!("match $p isa problem, has problem-name $m, has rating >= {x}; $y isa topic, has topic-name \"{tag}\"; $tt ($p, $y) isa possesses-tag; get $m;");
+    println!("{}", query);
 
-    println!("{}", full_query);
-
-    let mut answer_stream = transaction.query().match_(&full_query.as_str()).unwrap();
+    let mut answer_stream = transaction.query().match_(&query.as_str()).unwrap();
     while let Some(result) = answer_stream.next().await{
         match result {
             Ok(concept_map) => {
@@ -147,7 +136,7 @@ async fn query3(connection: Connection)->std::io::Result<()>{
     Ok(())
 }
 
-async fn run_io(connection: Connection){
+async fn run_query(connection: Connection){
     println!("Welcome to the codeforces data model project. Please choose what kind of query you would like to make from the following options");
     println!("Please select your entry using the number of the query");
     println!("Options");
@@ -155,22 +144,19 @@ async fn run_io(connection: Connection){
     println!("2) Get IDs of problems with a particular tag");
     println!("3) Get problem-name of problems with a particular tag with rating >= x");
     let qtype: i32=read!();
-    if qtype == 1{
-        let _ = query1(connection).await;
-    }else if qtype == 2{
-        let _ = query2(connection).await;
-    }else if qtype == 3{
-        let _ = query3(connection).await;
-    }else{
-        println!("Retry, invalid query option chosen");
-    }
+    match qtype {
+        1 => query1(connection).await.unwrap(),
+        2 => query2(connection).await.unwrap(),
+        3 => query3(connection).await.unwrap(),
+        _ => println!("Retry, invalid query option chosen")
+    };
 }
 
 #[tokio::main]
 async fn main()->std::io::Result<()>{
-    let con=new_core_connection().expect("Line: 74");
+    let con=new_core_connection().expect(line!().to_string().as_str());
     load_schema(con.clone()).await?;
-    run_io(con.clone()).await;
+    run_query(con.clone()).await;
 
     Ok(())
 }
