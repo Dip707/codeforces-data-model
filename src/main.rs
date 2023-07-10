@@ -4,37 +4,44 @@ use typedb_client::{
     SessionType::{Data, Schema},
     TransactionType::{Read, Write}
 };
-use futures::{StreamExt};
+use futures::StreamExt;
 use  std::fs;
 use text_io::read;
+use std::io;
 
-const TEST_DATABASE: &str = "codeforces-data-model-5";
+#[derive(Debug)]
+enum HandleError {
+    Io(io::Error),
+    TypeDB(typedb_client::error::Error),
+}
+
+const TEST_DATABASE: &str = "codeforces-data-model";
  
 fn new_core_connection() -> typedb_client::Result<Connection> {
     Connection::new_plaintext("localhost:1729")
 }
 
-async fn load_data(connection: Connection)->std::io::Result<()>{
-    let data=fs::read_to_string("./src/data.tql")?;    
+async fn load_data(connection: Connection)->Result<(), HandleError>{
+    let data=fs::read_to_string("./src/data.tql").map_err(HandleError::Io)?;    
     let databases = DatabaseManager::new(connection.clone());
-    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
-    let transaction = session.transaction(Write).await.unwrap();
+    let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Data).await.map_err(HandleError::TypeDB)?;
+    let transaction = session.transaction(Write).await.map_err(HandleError::TypeDB)?;
     let _ = transaction.query().insert(data.as_str());
-    transaction.commit().await.unwrap();
+    transaction.commit().await.map_err(HandleError::TypeDB)?;
     println!("\nData Loaded Successfully\n");
     Ok(())
 }
 
-async fn load_schema(connection: Connection)->std::io::Result<()>{
-    let schema = fs::read_to_string("./src/schema.tql")?;
+async fn load_schema(connection: Connection)->Result<(), HandleError>{
+    let schema = fs::read_to_string("./src/schema.tql").map_err(HandleError::Io)?;
     let databases = DatabaseManager::new(connection.clone());
-    if databases.contains(TEST_DATABASE).await.unwrap()==false {
+    if databases.contains(TEST_DATABASE).await.map_err(HandleError::TypeDB)?==false {
         let _ = databases.create(TEST_DATABASE).await;
         // define schema
-        let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Schema).await.unwrap();
-        let transaction = session.transaction(Write).await.unwrap();
-        transaction.query().define(schema.as_str()).await.unwrap();
-        transaction.commit().await.unwrap();
+        let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Schema).await.map_err(HandleError::TypeDB)?;
+        let transaction = session.transaction(Write).await.map_err(HandleError::TypeDB)?;
+        transaction.query().define(schema.as_str()).await.map_err(HandleError::TypeDB)?;
+        transaction.commit().await.map_err(HandleError::TypeDB)?;
         drop(session);
         println!("\nSchema Defined Successfully\n");
         load_data(connection.clone()).await?;
@@ -45,10 +52,10 @@ async fn load_schema(connection: Connection)->std::io::Result<()>{
     Ok(())
 }
 
-async fn query1(connection: Connection)->std::io::Result<()>{    
+async fn query1(connection: Connection)->Result<(), HandleError>{
     let databases = DatabaseManager::new(connection.clone());
-    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
-    let transaction = session.transaction(Read).await.unwrap();
+    let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Data).await.map_err(HandleError::TypeDB)?;
+    let transaction = session.transaction(Read).await.map_err(HandleError::TypeDB)?;
     println!("Query chosen : Get names of all coders with rating >= x");
     println!("Choose rating x");
     let x: String=read!("{}\n");
@@ -56,7 +63,7 @@ async fn query1(connection: Connection)->std::io::Result<()>{
 
     println!("{}", query);
 
-    let mut answer_stream = transaction.query().match_(&query.as_str()).unwrap();
+    let mut answer_stream = transaction.query().match_(&query.as_str()).map_err(HandleError::TypeDB)?;
     while let Some(result) = answer_stream.next().await{
         match result {
             Ok(concept_map) => {
@@ -75,10 +82,10 @@ async fn query1(connection: Connection)->std::io::Result<()>{
     Ok(())
 }
 
-async fn query2(connection: Connection)->std::io::Result<()>{    
+async fn query2(connection: Connection)->Result<(), HandleError>{
     let databases = DatabaseManager::new(connection.clone());
-    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
-    let transaction = session.transaction(Read).await.unwrap();
+    let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Data).await.map_err(HandleError::TypeDB)?;
+    let transaction = session.transaction(Read).await.map_err(HandleError::TypeDB)?;
     println!("Query chosen : Get IDs of problems with a particular tag");
     println!("Choose tag");
     let tag: String=read!("{}\n");
@@ -86,7 +93,7 @@ async fn query2(connection: Connection)->std::io::Result<()>{
 
     println!("{}", query);
 
-    let mut answer_stream = transaction.query().match_(&query.as_str()).unwrap();
+    let mut answer_stream = transaction.query().match_(&query.as_str()).map_err(HandleError::TypeDB)?;
     while let Some(result) = answer_stream.next().await{
         match result {
             Ok(concept_map) => {
@@ -105,10 +112,10 @@ async fn query2(connection: Connection)->std::io::Result<()>{
     Ok(())
 }
 
-async fn query3(connection: Connection)->std::io::Result<()>{    
+async fn query3(connection: Connection)->Result<(), HandleError>{
     let databases = DatabaseManager::new(connection.clone());
-    let session = Session::new(databases.get(TEST_DATABASE).await.unwrap(), Data).await.unwrap();
-    let transaction = session.transaction(Read).await.unwrap();
+    let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Data).await.map_err(HandleError::TypeDB)?;
+    let transaction = session.transaction(Read).await.map_err(HandleError::TypeDB)?;
     println!("Query chosen : Get problem-name of problems with a particular tag with rating >= x");
     println!("Choose rating x");
     let x: String=read!("{}\n");
@@ -117,7 +124,7 @@ async fn query3(connection: Connection)->std::io::Result<()>{
     let query = format!("match $p isa problem, has problem-name $m, has rating >= {x}; $y isa topic, has topic-name \"{tag}\"; $tt ($p, $y) isa possesses-tag; get $m;");
     println!("{}", query);
 
-    let mut answer_stream = transaction.query().match_(&query.as_str()).unwrap();
+    let mut answer_stream = transaction.query().match_(&query.as_str()).map_err(HandleError::TypeDB)?;
     while let Some(result) = answer_stream.next().await{
         match result {
             Ok(concept_map) => {
@@ -136,7 +143,7 @@ async fn query3(connection: Connection)->std::io::Result<()>{
     Ok(())
 }
 
-async fn run_query(connection: Connection){
+async fn run_query(connection: Connection)->Result<(), HandleError>{
     println!("Welcome to the codeforces data model project. Please choose what kind of query you would like to make from the following options");
     println!("Please select your entry using the number of the query");
     println!("Options");
@@ -145,18 +152,20 @@ async fn run_query(connection: Connection){
     println!("3) Get problem-name of problems with a particular tag with rating >= x");
     let qtype: i32=read!();
     match qtype {
-        1 => query1(connection).await.unwrap(),
-        2 => query2(connection).await.unwrap(),
-        3 => query3(connection).await.unwrap(),
+        1 => query1(connection).await?,
+        2 => query2(connection).await?,
+        3 => query3(connection).await?,
         _ => println!("Retry, invalid query option chosen")
     };
+
+    Ok(())
 }
 
 #[tokio::main]
-async fn main()->std::io::Result<()>{
+async fn main()->Result<(), HandleError>{
     let con=new_core_connection().expect(line!().to_string().as_str());
     load_schema(con.clone()).await?;
-    run_query(con.clone()).await;
+    run_query(con.clone()).await?;
 
     Ok(())
 }
