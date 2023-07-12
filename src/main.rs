@@ -21,22 +21,31 @@ fn new_core_connection() -> typedb_client::Result<Connection> {
     Connection::new_plaintext("localhost:1729")
 }
 
+fn read_input() -> Result<String, HandleError>{
+    let mut input_string = String::new();
+    io::stdin().read_line(&mut input_string).map_err(HandleError::Io)?;
+    input_string.pop();
+    Ok(input_string)
+}
+
 async fn load_data(connection: Connection)->Result<(), HandleError>{
     let data=fs::read_to_string("./src/data.tql").map_err(HandleError::Io)?;    
     let databases = DatabaseManager::new(connection.clone());
     let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Data).await.map_err(HandleError::TypeDB)?;
     let transaction = session.transaction(Write).await.map_err(HandleError::TypeDB)?;
-    let _ = transaction.query().insert(data.as_str());
+    let  _ = transaction.query().insert(data.as_str()).map_err(HandleError::TypeDB)?;
     transaction.commit().await.map_err(HandleError::TypeDB)?;
     println!("\nData Loaded Successfully\n");
     Ok(())
 }
 
-async fn load_schema(connection: Connection)->Result<(), HandleError>{
+async fn load_schema_and_data(connection: Connection)->Result<(), HandleError>{
     let schema = fs::read_to_string("./src/schema.tql").map_err(HandleError::Io)?;
     let databases = DatabaseManager::new(connection.clone());
-    if databases.contains(TEST_DATABASE).await.map_err(HandleError::TypeDB)?==false {
-        let _ = databases.create(TEST_DATABASE).await;
+    if databases.contains(TEST_DATABASE).await.map_err(HandleError::TypeDB)? {
+        println!("\nSchema Already Defined\n");
+    }else {
+        databases.create(TEST_DATABASE).await.map_err(HandleError::TypeDB)?;
         // define schema
         let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Schema).await.map_err(HandleError::TypeDB)?;
         let transaction = session.transaction(Write).await.map_err(HandleError::TypeDB)?;
@@ -45,8 +54,6 @@ async fn load_schema(connection: Connection)->Result<(), HandleError>{
         drop(session);
         println!("\nSchema Defined Successfully\n");
         load_data(connection.clone()).await?;
-    }else {
-        println!("\nSchema Already Defined\n");
     }
 
     Ok(())
@@ -58,10 +65,8 @@ async fn query1(connection: Connection)->Result<(), HandleError>{
     let transaction = session.transaction(Read).await.map_err(HandleError::TypeDB)?;
     println!("Query chosen : Get names of all coders with rating >= x");
     println!("Choose rating x");
-    let x: String=read!("{}\n");
+    let x = read_input()?;
     let query = format!("match $cc isa coder, has handle $p, has rating >= {x}; get $p;");
-
-    println!("{}", query);
 
     let mut answer_stream = transaction.query().match_(&query.as_str()).map_err(HandleError::TypeDB)?;
     while let Some(result) = answer_stream.next().await{
@@ -88,10 +93,8 @@ async fn query2(connection: Connection)->Result<(), HandleError>{
     let transaction = session.transaction(Read).await.map_err(HandleError::TypeDB)?;
     println!("Query chosen : Get IDs of problems with a particular tag");
     println!("Choose tag");
-    let tag: String=read!("{}\n");
+    let tag = read_input()?;
     let query = format!("match $tt ($x, $y) isa possesses-tag; $x isa problem, has problem-number $a; $y isa topic, has topic-name \"{tag}\"; get $a;");
-
-    println!("{}", query);
 
     let mut answer_stream = transaction.query().match_(&query.as_str()).map_err(HandleError::TypeDB)?;
     while let Some(result) = answer_stream.next().await{
@@ -104,7 +107,7 @@ async fn query2(connection: Connection)->Result<(), HandleError>{
                 }
             }
             Err(err) => {
-                panic!("An error occurred fetching answers of a Match query: {err}")
+                return Err(HandleError::TypeDB(err));
             }
         }
     }
@@ -118,11 +121,10 @@ async fn query3(connection: Connection)->Result<(), HandleError>{
     let transaction = session.transaction(Read).await.map_err(HandleError::TypeDB)?;
     println!("Query chosen : Get problem-name of problems with a particular tag with rating >= x");
     println!("Choose rating x");
-    let x: String=read!("{}\n");
+    let x = read_input()?;
     println!("Choose tag");
-    let tag: String=read!();
+    let tag = read_input()?;
     let query = format!("match $p isa problem, has problem-name $m, has rating >= {x}; $y isa topic, has topic-name \"{tag}\"; $tt ($p, $y) isa possesses-tag; get $m;");
-    println!("{}", query);
 
     let mut answer_stream = transaction.query().match_(&query.as_str()).map_err(HandleError::TypeDB)?;
     while let Some(result) = answer_stream.next().await{
@@ -135,8 +137,9 @@ async fn query3(connection: Connection)->Result<(), HandleError>{
                 }
             }
             Err(err) => {
-                panic!("An error occurred fetching answers of a Match query: {err}")
+                return Err(HandleError::TypeDB(err));
             }
+
         }
     }
 
@@ -164,7 +167,7 @@ async fn run_query(connection: Connection)->Result<(), HandleError>{
 #[tokio::main]
 async fn main()->Result<(), HandleError>{
     let con=new_core_connection().expect(line!().to_string().as_str());
-    load_schema(con.clone()).await?;
+    load_schema_and_data(con.clone()).await?;
     run_query(con.clone()).await?;
 
     Ok(())
