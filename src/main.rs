@@ -6,7 +6,6 @@ use typedb_client::{
 };
 use futures::StreamExt;
 use  std::fs;
-use text_io::read;
 use std::io;
 
 #[derive(Debug)]
@@ -153,11 +152,11 @@ async fn run_query(connection: Connection)->Result<(), HandleError>{
     println!("1) Get names of all coders with rating >= x");
     println!("2) Get IDs of problems with a particular tag");
     println!("3) Get problem-name of problems with a particular tag with rating >= x");
-    let qtype: i32=read!();
-    match qtype {
-        1 => query1(connection).await?,
-        2 => query2(connection).await?,
-        3 => query3(connection).await?,
+    let qtype =read_input()?;
+    match qtype.as_str() {
+        "1" => query1(connection).await?,
+        "2" => query2(connection).await?,
+        "3" => query3(connection).await?,
         _ => println!("Retry, invalid query option chosen")
     };
 
