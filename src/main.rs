@@ -73,7 +73,6 @@ async fn load_schema_and_data(connection: Connection) -> Result<(), HandleError>
             .create(TEST_DATABASE)
             .await
             .map_err(HandleError::TypeDB)?;
-        // define schema
         let session = Session::new(
             databases
                 .get(TEST_DATABASE)
