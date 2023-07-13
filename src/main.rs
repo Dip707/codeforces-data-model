@@ -34,7 +34,7 @@ async fn load_data(connection: Connection)->Result<(), HandleError>{
     let session = Session::new(databases.get(TEST_DATABASE).await.map_err(HandleError::TypeDB)?, Data).await.map_err(HandleError::TypeDB)?;
     let transaction = session.transaction(Write).await.map_err(HandleError::TypeDB)?;
     let inserted_query = transaction.query().insert(data.as_str()).map_err(HandleError::TypeDB)?;
-    let _ = inserted_query.try_collect::<Vec<_>>().await;
+    inserted_query.try_collect::<Vec<_>>().await.map_err(HandleError::TypeDB)?;
     transaction.commit().await.map_err(HandleError::TypeDB)?;
     println!("\nData Loaded Successfully\n");
     Ok(())
