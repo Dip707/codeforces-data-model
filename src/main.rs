@@ -101,7 +101,7 @@ async fn load_schema_and_data(connection: Connection) -> Result<(), HandleError>
     Ok(())
 }
 
-async fn query1(connection: Connection) -> Result<(), HandleError> {
+async fn query_coder_names_via_rating(connection: Connection) -> Result<(), HandleError> {
     let databases = DatabaseManager::new(connection.clone());
     let session = Session::new(
         databases
@@ -147,7 +147,7 @@ async fn query1(connection: Connection) -> Result<(), HandleError> {
     Ok(())
 }
 
-async fn query2(connection: Connection) -> Result<(), HandleError> {
+async fn query_problem_ids_via_tag(connection: Connection) -> Result<(), HandleError> {
     let databases = DatabaseManager::new(connection.clone());
     let session = Session::new(
         databases
@@ -193,7 +193,7 @@ async fn query2(connection: Connection) -> Result<(), HandleError> {
     Ok(())
 }
 
-async fn query3(connection: Connection) -> Result<(), HandleError> {
+async fn query_problem_names_via_tag_and_rating(connection: Connection) -> Result<(), HandleError> {
     let databases = DatabaseManager::new(connection.clone());
     let session = Session::new(
         databases
@@ -250,9 +250,9 @@ async fn run_query(connection: Connection) -> Result<(), HandleError> {
     println!("3) Get problem-name of problems with a particular tag with rating >= x");
     let qtype = read_input()?;
     match qtype.as_str() {
-        "1" => query1(connection).await?,
-        "2" => query2(connection).await?,
-        "3" => query3(connection).await?,
+        "1" => query_coder_names_via_rating(connection).await?,
+        "2" => query_problem_ids_via_tag(connection).await?,
+        "3" => query_problem_names_via_tag_and_rating(connection).await?,
         _ => println!("Retry, invalid query option chosen"),
     };
 
