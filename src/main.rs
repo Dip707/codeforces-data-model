@@ -80,7 +80,7 @@ async fn query1(connection: Connection)->Result<(), HandleError>{
                 }
             }
             Err(err) => {
-                panic!("An error occurred fetching answers of a Match query: {err}")
+                return Err(HandleError::TypeDB(err));
             }
         }
     }
